@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickGPT 5.0</title>
+    <style>
+        /* Загальні стилі */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0b1120; /* Темний фон */
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Приховуємо скролбар */
+            position: relative;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 450px; /* Максимальна ширина для мобільних */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #1a2542; /* Основний фон гри */
+            box-shadow: 0 0 20px rgba(0, 246, 255, 0.3); /* Яскрава тінь */
+            position: relative;
+            overflow: hidden; /* Щоб контент не виходив за межі */
+        }
+
+        /* Стартовий екран */
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0b1120, #1a2542);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #fff;
+            text-align: center;
+            padding: 20px; /* Додаємо відступи */
+            box-sizing: border-box; /* Враховуємо padding у розмірі */
+        }
+
+        .start-screen h1 {
+            font-size: 2.5em;
+            color: #00f6ff;
+            text-shadow: 0 0 10px rgba(0, 246, 255, 0.7);
+            margin-bottom: 15px;
+        }
+
+        .start-screen > p { /* Селектор для параграфа прямого нащадка */
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        #startGameBtn {
+            background-color: #00f6ff;
+            color: #1a2542;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 246, 255, 0.5);
+            transition: all 0.3s ease;
+            margin-bottom: 30px; /* Відступ від історії */
+        }
+
+        #startGameBtn:hover {
+            background-color: #00d4e0;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 246, 255, 0.7);
+        }
+
+        .history-text {
+            font-size: 0.9em;
+            color: #c0c0c0;
+            line-height: 1.6;
+            max-width: 350px;
+            text-align: center;
+            margin: 0 auto 20px auto; /* Центруємо та додаємо відступ знизу */
+        }
+
+        .history-text strong {
+            color: #00f6ff;
+        }
+
+        .history-text q { /* Для цитати */
+            font-style: italic;
+            display: block;
+            margin: 15px 0;
+            color: #a0a0a0;
+        }
+
+        /* Верхня панель (Top Bar) */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #2a3b5c; /* Темніший фон для панелі */
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            z-index: 50;
+            position: sticky;
+            top: 0;
+            flex-wrap: wrap; /* Дозволяє перенос елементів */
+        }
+
+        .top-left-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            flex-basis: 50%; /* Займає половину ширини на малих екранах */
+        }
+
+        .gpt-balance {
+            display: flex;
+            align-items: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .gpt-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 8px;
+            filter: drop-shadow(0 0 5px #00f6ff);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1; /* Займає доступний простір */
+            margin-left: 10px; /* Відступ від GPT балансу */
+        }
+
+        .player-info .level-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            margin-right: 10px;
+            white-space: nowrap; /* Щоб не переносився текст рівня */
+        }
+
+        .player-info .level-progress {
+            flex-grow: 1;
+            height: 10px;
+            background-color: rgba(0, 246, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .level-progress-bar {
+            height: 100%;
+            background-color: #00f6ff;
+            width: 0%; /* Заповнення JS */
+            border-radius: 5px;
+            transition: width 0.3s ease-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7em;
+            color: #1a2542;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+
+        .energy-bar-container {
+            width: 100%; /* Займає всю ширину під балансом GPT */
+            height: 8px;
+            background-color: rgba(255, 165, 0, 0.2); /* Оранжевий для енергії */
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .energy-bar {
+            height: 100%;
+            background-color: #ffa500; /* Оранжевий */
+            width: 100%; /* Заповнення JS */
+            border-radius: 4px;
+            transition: width 0.3s ease-out;
+        }
+
+        .top-actions {
+            display: flex;
+            margin-left: auto; /* Притискає до правого краю */
+            flex-basis: 100%; /* Займає всю ширину на малих екранах */
+            justify-content: flex-end; /* Вирівнювання праворуч */
+            margin-top: 10px; /* Відступ зверху */
+        }
+        @media (min-width: 450px) { /* На більших екранах повертаємо в один рядок */
+            .top-actions {
+                flex-basis: auto;
+                margin-top: 0;
+            }
+            .top-left-info {
+                flex-basis: auto;
+            }
+        }
+
+        .top-actions .icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.8em;
+            color: #00f6ff;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: transform 0.2s;
+            filter: drop-shadow(0 0 5px rgba(0, 246, 255, 0.5));
+        }
+
+        .top-actions .icon-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Основний контент */
+        .main-content {
+            flex-grow: 1; /* Займає весь доступний простір */
+            padding: 15px;
+            overflow-y: auto; /* Дозволяємо прокрутку вмісту */
+            -webkit-overflow-scrolling: touch; /* Для плавного скролу на iOS */
+            padding-bottom: 70px; /* Залишаємо місце для нижньої панелі */
+        }
+
+        .section {
+            background-color: #1a2542; /* Колір секцій, як основний фон */
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px; /* Відступ між секціями, якщо вони показуються */
+            box-shadow: inset 0 0 15px rgba(0, 246, 255, 0.1), 0 5px 15px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .section h2 {
+            color: #00f6ff;
+            margin-top: 0;
+            text-shadow: 1px 1px 5px rgba(0, 246, 255, 0.5);
+            font-size: 1.8em;
+        }
+
+        /* Секція Клік (Головний екран) */
+        .clicker-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%; /* Займає всю висоту секції */
+            min-height: 400px; /* Мінімальна висота для клікера */
+        }
+
+        .ton-coin {
+            width: 250px;
+            height: 250px;
+            cursor: pointer;
+            transition: transform 0.1s ease-out;
+            filter: drop-shadow(0 0 20px #00f6ff); /* Сильне світіння монети */
+        }
+
+        .ton-coin:active {
+            transform: scale(0.95);
+        }
+
+        .auto-gpt-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #fff;
+            background-color: #0d1a33;
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0, 246, 255, 0.3);
+        }
+
+        .small-autogpt-icon {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: drop-shadow(0 0 5px #00f6ff);
+        }
+
+        /* Базові стилі для кнопок */
+        button {
+            background-color: #00f6ff;
+            color: #1a2542;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 246, 255, 0.3);
+            transition: all 0.2s ease;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #00d4e0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 246, 255, 0.5);
+        }
+
+        button:disabled {
+            background-color: #555;
+            color: #bbb;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Секції Біржа, AutoGPT, Магазин */
+        .exchange-controls, .upgrade-list, .store-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .upgrade-item, .store-item {
+            background-color: #0d1a33; /* Трохи темніший фон для елементів */
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            text-align: left;
+        }
+
+        .upgrade-item h3, .store-item h3 {
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .upgrade-item p, .store-item p {
+            font-size: 0.9em;
+            color: #b0b0b0;
+        }
+
+        /* Секція TON */
+        .ton-address-box {
+            background-color: #0d1a33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            word-break: break-all; /* Дозволяє переносити довгі слова */
+            box-shadow: inset 0 0 10px rgba(0, 246, 255, 0.1);
+        }
+
+        .ton-address-box span {
+            color: #fff;
+            font-size: 0.9em;
+            margin-right: 10px;
+            flex-grow: 1;
+        }
+
+        .ton-address-box .copy-btn {
+            background-color: #00f6ff;
+            color: #1a2542;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            border-radius: 8px;
+            white-space: nowrap; /* Щоб кнопка не переносилась */
+        }
+
+        .tonkeeper-btn {
+            background-color: #28a745; /* Зелений колір для TON */
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+        }
+
+        .tonkeeper-btn:hover {
+            background-color: #218838;
+            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.5);
+        }
+
+        .note {
+            font-size: 0.8em;
+            color: #ffcccc; /* Червонуватий для важливих заміток */
+            margin-top: 15px;
+        }
+
+        /* Секція NFT */
+        .nft-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .nft-card {
+            background-color: #0d1a33;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .nft-card img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .nft-card h3 {
+            font-size: 1em;
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .nft-card p {
+            font-size: 0.8em;
+            color: #b0b0b0;
+        }
+
+        /* Секція "Більше" та інші кнопки в ній */
+        .more-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* Дві кнопки в рядок */
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .more-options-grid .tab-button {
+            width: 100%;
+            padding: 12px 10px;
+            font-size: 0.95em;
+        }
+
+        /* Нижня навігація (Bottom Navigation Bar) */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            justify-content: space-around;
+            background-color: #2a3b5c; /* Темніший фон для навігації */
+            padding: 8px 0;
+            box-shadow: 0 -3px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            overflow: hidden; /* Щоб закруглення працювали */
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #b0b0b0;
+            font-size: 0.75em;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+            padding: 5px;
+            min-width: 60px; /* Мінімальна ширина для іконок */
+        }
+
+        .nav-item.active {
+            opacity: 1;
+            color: #00f6ff; /* Активний елемент яскравий */
+            transform: translateY(-3px); /* Легкий підйом */
+            text-shadow: 0 0 5px rgba(0, 246, 255, 0.7);
+        }
+
+        .nav-item:hover {
+            opacity: 0.9;
+            color: #fff;
+        }
+
+        .nav-icon {
+            width: 28px;
+            height: 28px;
+            margin-bottom: 3px;
+            filter: drop-shadow(0 0 3px rgba(0,0,0,0.5)); /* Тінь для іконок */
+        }
+
+        .nav-item.active .nav-icon {
+            filter: drop-shadow(0 0 8px #00f6ff); /* Світіння для активної іконки */
+        }
+
+        /* Адаптивність для менших екранів */
+        @media (max-width: 380px) {
+            .gpt-balance {
+                font-size: 1.3em;
+            }
+            .top-actions .icon-btn {
+                font-size: 1.5em;
+            }
+            .ton-coin {
+                width: 200px;
+                height: 200px;
+            }
+            .nav-item {
+                font-size: 0.7em;
+                min-width: 50px;
+            }
+            .nav-icon {
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        /* Анімація для кліків */
+        .click-animation {
+            position: absolute;
+            color: #00f6ff;
+            font-size: 2em;
+            font-weight: bold;
+            opacity: 0;
+            animation: fade-up 0.8s forwards;
+            pointer-events: none; /* Щоб не блокувало кліки */
+            text-shadow: 0 0 5px rgba(0, 246, 255, 0.7);
+            z-index: 99;
+        }
+
+        @keyframes fade-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+
+        /* Стилі для міні-біржі (Marketplace) */
+        .marketplace-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap; /* Дозволяє перенос кнопок на менших екранах */
+        }
+
+        .marketplace-tabs button {
+            background-color: #00f6ff;
+            color: #1a2542;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 246, 255, 0.3);
+        }
+
+        .marketplace-tabs button.active {
+            background-color: #00d4e0;
+            box-shadow: 0 4px 8px rgba(0, 246, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .marketplace-tabs button:hover:not(.active) {
+            background-color: #00b8c4;
+        }
+
+        .marketplace-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .card-item {
+            background-color: #0d1a33;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 180px; /* Фіксована висота для карток */
+            position: relative;
+            overflow: hidden; /* Щоб іконки не виходили за межі */
+        }
+
+        .card-item.locked {
+            filter: grayscale(100%);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .card-item .card-icon {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 0 5px rgba(0, 246, 255, 0.3));
+        }
+
+        .card-item h3 {
+            color: #fff;
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+
+        .card-item p {
+            font-size: 0.8em;
+            color: #b0b0b0;
+            margin-bottom: 10px;
+        }
+
+        .card-item .card-level {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #00f6ff;
+            margin-bottom: 10px;
+        }
+
+        .card-item button {
+            width: calc(100% - 10px); /* З урахуванням марджінів */
+            padding: 8px 10px;
+            font-size: 0.85em;
+            margin-top: auto; /* Притискає кнопку донизу */
+        }
+
+        .card-item button.buy-ton {
+            background-color: #28a745; /* Зелений для TON */
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+        .card-item button.buy-ton:hover {
+            background-color: #218838;
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .auto-bot-info {
+            background-color: #0d1a33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 246, 255, 0.1);
+            text-align: left;
+        }
+
+        .auto-bot-info h3 {
+            color: #00f6ff;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .auto-bot-info p {
+            margin-bottom: 5px;
+        }
+
+        .auto-bot-info button {
+            margin-top: 10px;
+        }
+
+        /* Стилі для секції Квестів */
+        .quest-item {
+            background-color: #0d1a33;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .quest-item h3 {
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        .quest-item p {
+            font-size: 0.9em;
+            color: #b0b0b0;
+            margin-bottom: 10px;
+        }
+        .quest-progress-bar {
+            height: 5px;
+            background-color: rgba(0, 246, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .quest-progress-fill {
+            height: 100%;
+            background-color: #00f6ff;
+            width: 0%;
+        }
+        .quest-item button {
+            width: auto;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            margin-top: 0;
+        }
+        .quest-item button:disabled {
+            background-color: #555;
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-2.mp3" preload="auto"></audio>
+    <audio id="buySound" src="https://www.soundjay.com/buttons/sounds/button-7.mp3" preload="auto"></audio>
+
+    <div class="start-screen" id="startScreen">
+        <h1>ClickGPT 5.0</h1>
+        <p>Ваш шлях до TON майнінгу починається тут!</p>
+        <button id="startGameBtn">Почати гру</button>
+
+        <div class="history-text">
+            <p><strong>Історія ClickGPT 5.0</strong></p>
+            <p>У 2025 році Засновник CUBERION AI створив ClickGPT 5.0 — гру на межі ігрової революції. Народилася нова епоха, в якій клік, блокчейн і штучний інтелект об’єдналися в єдиний всесвіт.</p>
+            <p>Засновник ClickGPT проклав шлях, щоб кожен гравець зміг заробляти, розвиватися та створювати власну імперію ШІ — гнучку, стратегічну та повну викликів.</p>
+            <p>Ця гра — подяка всім, хто вірив у силу нейромереж. ClickGPT 5.0 — це еволюція гри, де клік, крипта та штучний інтелект злились в одне ціле.</p>
+            <q>Створено з подякою OpenAI (ChatGPT) та Google (Gemini).</q>
+            <p>Відчуй себе творцем. Веди свою імперію до вершини.</p>
+        </div>
+    </div>
+
+    <div class="game-container" id="gameContainer" style="display:none;">
+
+        <div class="top-bar">
+            <div class="top-left-info">
+                <div class="gpt-balance">
+                    <img src="https://i.ibb.co/L50H86T/gpt-icon.png" alt="GPT Icon" class="gpt-icon">
+                    <span id="gptCount">0</span> GPT
+                </div>
+                <div class="player-info">
+                    <span class="level-display">Рівень: <span id="playerLevel">1</span></span>
+                    <div class="level-progress">
+                        <div class="level-progress-bar" id="levelProgressBar"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="energy-bar-container">
+                <div class="energy-bar" id="energyBar"></div>
+            </div>
+            <div class="top-actions">
+                <button class="icon-btn" onclick="showSettings()">⚙️</button>
+                <button class="icon-btn" onclick="showNotifications()">🔔</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="section" id="click" style="display:block;">
+                <div class="clicker-area">
+                    <img src="https://i.ibb.co/ZzF4M5w/ton-coin.png" alt="TON Coin" class="ton-coin" id="tonCoin">
+                    <div class="auto-gpt-indicator">
+                        <img src="https://i.ibb.co/3Wf4Q7x/autogpt-small-icon.png" alt="AutoGPT Icon" class="small-autogpt-icon">
+                        <span id="autoGptRate">0</span> GPT/сек
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="exchange" style="display:none;">
+                <h2>Біржа GPT</h2>
+                <p>Тут буде функціонал обміну GPT. <br> Купуйте та продавайте GPT за TON або інші ігрові ресурси.</p>
+                <div class="marketplace-tabs">
+                    <button class="tab-button active" data-market-tab="crypto">Крипта</button>
+                    <button class="tab-button" data-market-tab="ai">ШІ</button>
+                    <button class="tab-button" data-market-tab="meme">Мем-екосистема</button>
+                    <button class="tab-button" data-market-tab="social">Телеграм / Біржі / Інфлюенсери</button>
+                </div>
+                <div id="marketplace-cards-container" class="marketplace-cards-container">
+                    </div>
+                <p class="note">Деякі картки з'являться пізніше. Стежте за оновленнями!</p>
+            </div>
+
+            <div class="section" id="autogpt" style="display:none;">
+                <h2>AutoGPT</h2>
+                <p>Покращуйте свій AutoGPT, щоб заробляти GPT пасивно!</p>
+                <div class="upgrade-list">
+                    <div class="upgrade-item" data-upgrade-cost="100" data-upgrade-rate="1" data-upgrade-type="baseAutoGpt">
+                        <h3>Базовий AutoGPT</h3>
+                        <p>Генерує +1 GPT/сек.</p>
+                        <button class="buy-upgrade-btn">Покращити (100 GPT)</button>
+                    </div>
+                    <div class="upgrade-item" data-upgrade-cost="500" data-upgrade-rate="5" data-upgrade-type="superMiner">
+                        <h3>Супер-майнер</h3>
+                        <p>Генерує +5 GPT/сек.</p>
+                        <button class="buy-upgrade-btn">Купити (500 GPT)</button>
+                    </div>
+                    <div class="upgrade-item" data-upgrade-cost="2000" data-upgrade-rate="20" data-upgrade-type="quantumProcessor">
+                        <h3>Квантовий процесор</h3>
+                        <p>Генерує +20 GPT/сек.</p>
+                        <button class="buy-upgrade-btn">Купити (2000 GPT)</button>
+                    </div>
+                </div>
+
+                <div class="auto-bot-info">
+                    <h3>АвтоБот (Офлайн-майнінг)</h3>
+                    <p>Працює, поки ви відпочиваєте. Приносить: <span id="offlineMiningRate">0</span> GPT/год</p>
+                    <p>Рівень ефективності: <span id="offlineBotLevel">1</span></p>
+                    <button id="upgradeOfflineBotBtn">Покращити АвтоБота (<span id="offlineBotCost">0</span> GPT)</button>
+                </div>
+            </div>
+
+            <div class="section" id="store" style="display:none;">
+                <h2>Магазин 🏪 GPT</h2>
+                <p>Купуйте потужні покращення та бонуси!</p>
+                <div class="store-grid">
+                    <div class="store-item" data-item-cost="50" data-item-type="clickBooster">
+                        <h3>Прискорювач кліків</h3>
+                        <p>Кожен клік приносить +1 GPT.</p>
+                        <button class="buy-item-btn">Купити (50 GPT)</button>
+                    </div>
+                    <div class="store-item" data-item-cost="200" data-item-type="energyBoost">
+                        <h3>Енергетичний буст</h3>
+                        <p>Збільшує максимальну енергію на 20%.</p>
+                        <button class="buy-item-btn">Купити (200 GPT)</button>
+                    </div>
+                    <div class="store-item" data-item-cost="1000" data-item-type="dailyBonusReset">
+                        <h3>Миттєве відновлення енергії</h3>
+                        <p>Миттєво відновлює всю енергію.</p>
+                        <button class="buy-item-btn">Купити (1000 GPT)</button>
+                    </div>
+                    <div class="store-item" data-item-cost="750" data-item-type="xpBooster">
+                        <h3>XP Бустер (х2 на 5 хв)</h3>
+                        <p>Подвоює отриманий досвід на 5 хвилин.</p>
+                        <button class="buy-item-btn">Купити (750 GPT)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="quests" style="display:none;">
+                <h2>Квести</h2>
+                <p>Виконуйте щоденні завдання та отримуйте нагороди!</p>
+                <div id="dailyQuestsContainer">
+                    </div>
+                <p class="note">Досягнення будуть додані в майбутньому.</p>
+            </div>
+
+            <div class="section" id="leaderboards" style="display:none;">
+                <h2>Лідерборди</h2>
+                <p>Поточні лідерборди (поки що заглушка):</p>
+                <ul>
+                    <li>1. Ви - <span id="myRankGPT">#1</span> (<span id="myGPT">0</span> GPT)</li>
+                    <li>2. Player2 - 999999 GPT</li>
+                    <li>3. Player3 - 888888 GPT</li>
+                </ul>
+                <p class="note">Для повноцінного лідерборду потрібен бекенд.</p>
+            </div>
+
+            <div class="section" id="ton" style="display:none;">
+                <h2>TON</h2>
+                <p>Підтримайте розробку або купуйте преміум-бонуси за TON.</p>
+                <p>Надішліть TON на адресу нижче:</p>
+                <div class="ton-address-box">
+                    <span id="tonAddress">UQDYeuT1gu7HySLhdOUhfGlgM4NPIsZbmOTbnuW9z4N5NyVS</span>
+                    <button class="copy-btn" onclick="copyTonAddress()">📋 Копіювати</button>
+                </div>
+                <button class="tonkeeper-btn" onclick="openTonkeeper()">Оплатити через Tonkeeper</button>
+                <p class="note">Ваш платіж буде перевірено вручну. Будь ласка, вказуйте свій ігровий ID в коментарі!</p>
+            </div>
+
+            <div class="section" id="nft" style="display:none;">
+                <h2>NFT</h2>
+                <p>Тут буде ваша колекція NFT.</p>
+                <div class="nft-gallery">
+                    <div class="nft-card">
+                        <img src="https://i.ibb.co/p26WJ4B/nft-placeholder.png" alt="NFT Placeholder">
+                        <h3>NFT Заголовок</h3>
+                        <p>Опис вашого NFT.</p>
+                    </div>
+                </div>
+                <p class="note">Колекція NFT буде доступна на вищих рівнях.</p>
+            </div>
+
+            <div class="section" id="presale" style="display:none;">
+                <h2>🎁 Прісейл Toncoin</h2>
+                <p>🚀 Скоро тут буде доступна ексклюзивна можливість взяти участь у прісейлі Toncoin!</p>
+                <p>Будьте готові інвестувати та отримати бонуси для майбутнього розвитку вашої імперії GPT.</p>
+                <p>Слідкуйте за нашими анонсами в офіційному Telegram-каналі, щоб не пропустити старт!</p>
+                <p>🔔 **Важливо:** Інформація про прісейл буде оприлюднена заздалегідь. Не пропустіть свій шанс!</p>
+                <button onclick="window.open('https://t.me/your_telegram_channel', '_blank')">Приєднатися до Telegram</button>
+                <p class="note" style="color: #ff9900;">Тут буде посилання на офіційний канал проекту.</p>
+            </div>
+
+            <div class="section" id="settings" style="display:none;">
+                <h2>Налаштування</h2>
+                <p>Тут ви можете змінити налаштування гри.</p>
+                <button onclick="saveGameData()">Зберегти гру</button>
+                <button onclick="resetGameData()">Скинути гру</button>
+                <p class="note">Будьте обережні, скидання гри видалить весь ваш прогрес!</p>
+            </div>
+
+            <div class="section" id="notifications" style="display:none;">
+                <h2>Повідомлення</h2>
+                <p>Усі ваші ігрові повідомлення та сповіщення будуть тут.</p>
+                <ul id="notificationList">
+                    <li><small>2025-05-24 17:00</small> Ласкаво просимо до ClickGPT 5.0!</li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active" data-tab="click">
+                <img src="https://i.ibb.co/ZzF4M5w/ton-coin.png" alt="Click" class="nav-icon">
+                <span>Клік</span>
+            </div>
+            <div class="nav-item" data-tab="exchange">
+                <img src="https://i.ibb.co/zXn2w9d/exchange-icon.png" alt="Exchange" class="nav-icon">
+                <span>Біржа</span>
+            </div>
+            <div class="nav-item" data-tab="autogpt">
+                <img src="https://i.ibb.co/3Wf4Q7x/autogpt-small-icon.png" alt="AutoGPT" class="nav-icon">
+                <span>AutoGPT</span>
+            </div>
+            <div class="nav-item" data-tab="store">
+                <img src="https://i.ibb.co/Q8Q40v2/store-icon.png" alt="Store" class="nav-icon">
+                <span>Магазин</span>
+            </div>
+            <div class="nav-item" data-tab="more">
+                <img src="https://i.ibb.co/y4L2jQG/more-icon.png" alt="More" class="nav-icon">
+                <span>Більше</span>
+            </div>
+        </div>
+
+        <div class="section" id="more" style="display:none;">
+            <h2>Більше опцій</h2>
+            <div class="more-options-grid">
+                <button class="tab-button" onclick="showTab('quests')">Квести</button>
+                <button class="tab-button" onclick="showTab('leaderboards')">Лідерборди</button>
+                <button class="tab-button" onclick="showTab('ton')">TON</button>
+                <button class="tab-button" onclick="showTab('nft')">NFT</button>
+                <button class="tab-button" onclick="showSettings()">Налаштування</button>
+                <button class="tab-button" onclick="showNotifications()">Повідомлення</button>
+                <button class="tab-button" onclick="showTab('presale')">🎁 Прісейл</button> </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startScreen = document.getElementById('startScreen');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const gameContainer = document.getElementById('gameContainer');
+
+            const gptCountElem = document.getElementById('gptCount');
+            const tonCoin = document.getElementById('tonCoin');
+            const autoGptRateElem = document.getElementById('autoGptRate');
+
+            const playerLevelElem = document.getElementById('playerLevel');
+            const levelProgressBar = document.getElementById('levelProgressBar');
+            const energyBar = document.getElementById('energyBar');
+
+            const navItems = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('.section');
+
+            const upgradeList = document.querySelector('.upgrade-list');
+            const storeGrid = document.querySelector('.store-grid');
+            const notificationList = document.getElementById('notificationList');
+
+            const marketplaceTabs = document.querySelector('.marketplace-tabs');
+            const marketplaceCardsContainer = document.getElementById('marketplace-cards-container');
+
+            const offlineMiningRateElem = document.getElementById('offlineMiningRate');
+            const offlineBotLevelElem = document.getElementById('offlineBotLevel');
+            const upgradeOfflineBotBtn = document.getElementById('upgradeOfflineBotBtn');
+            const offlineBotCostElem = document.getElementById('offlineBotCost');
+
+            const dailyQuestsContainer = document.getElementById('dailyQuestsContainer');
+            const myRankGPTElem = document.getElementById('myRankGPT');
+            const myGPTElem = document.getElementById('myGPT');
+
+            // Audio elements
+            const clickSound = document.getElementById('clickSound');
+            const buySound = document.getElementById('buySound');
+
+
+            // Дані гри
+            let gameData = {
+                gpt: 0,
+                clickPower: 1, // Базова сила кліку
+                autoGptRate: 0, // Звичайний AutoGPT, що працює в онлайні
+                energy: {
+                    current: 100,
+                    max: 100,
+                    recoveryRate: 1 // 1 енергія кожні N секунд
+                },
+                offlineBot: { // АвтоБот для офлайн-майнінгу
+                    level: 1,
+                    miningRatePerHour: 0, // GPT/год
+                    cost: 100, // Початкова вартість в GPT
+                    tonCost: 1 // Початкова вартість в TON
+                },
+                level: 1,
+                xp: 0,
+                upgrades: {
+                    baseAutoGpt: 0,
+                    superMiner: 0,
+                    quantumProcessor: 0,
+                },
+                items: {
+                    clickBooster: 0, // Збільшує клік
+                    energyBoost: 0, // Збільшує максимальну енергію
+                    dailyBonusReset: 0, // Миттєве відновлення енергії
+                    xpBooster: 0, // Х2 XP
+                },
+                marketplaceCards: {}, // Зберігаємо рівні прокачки карток
+                notifications: [],
+                lastActiveTime: Date.now(),
+                gameStartTime: Date.now(), // Час початку гри для розблокування карток
+                dailyQuests: [],
+                lastDailyQuestReset: 0 // Час останнього скидання щоденних квестів
+            };
+
+            // Конфігурація рівнів XP
+            const levelXpRequirements = {
+                1: 100,
+                2: 250,
+                3: 500,
+                4: 1000,
+                5: 2000,
+                6: 3500,
+                7: 5500,
+                8: 8000,
+                9: 11000,
+                10: 15000,
+                // Додайте більше рівнів за потребою
+            };
+
+            // Дані для карток міні-біржі
+            const marketplaceCardData = {
+                crypto: [
+                    { id: 'card-bitcoin', name: 'Bitcoin Alpha', effect: 'click power', baseCost: 500, unlockDays: 0, icon: '₿', multiplier: 0.01 }, // 1% до кліку
+                    { id: 'card-ethereum', name: 'Ethereum Bridge', effect: 'auto GPT', baseCost: 600, unlockDays: 0, icon: 'Ξ', multiplier: 0.01 }, // 1% до авто-GPT
+                    { id: 'card-solana', name: 'Solana Speed', effect: 'XP gain', baseCost: 700, unlockDays: 1, icon: '☀️', multiplier: 0.05 }, // 5% до XP
+                    { id: 'card-ton', name: 'TON Ecosystem', effect: 'offline mining', baseCost: 800, unlockDays: 1, icon: '💎', multiplier: 0.05 }, // 5% до офлайн майнінгу
+                    { id: 'card-binance', name: 'Binance Smart Chain', effect: 'click power', baseCost: 900, unlockDays: 2, icon: '🔗', multiplier: 0.01 },
+                    { id: 'card-polkadot', name: 'Polkadot Interchain', effect: 'auto GPT', baseCost: 950, unlockDays: 3, icon: '⚪', multiplier: 0.01 },
+                    { id: 'card-cardano', name: 'Cardano PoS', effect: 'XP gain', baseCost: 1000, unlockDays: 4, icon: '₳', multiplier: 0.05 },
+                    { id: 'card-ripple', name: 'Ripple Transaction', effect: 'offline mining', baseCost: 1100, unlockDays: 5, icon: ' XRP', multiplier: 0.05 },
+                    { id: 'card-litecoin', name: 'Litecoin Silver', effect: 'click power', baseCost: 800, unlockDays: 6, icon: 'Ł', multiplier: 0.01 },
+                    { id: 'card-dogecoin-crypto', name: 'Dogecoin (Crypto)', effect: 'XP gain', baseCost: 700, unlockDays: 7, icon: '🐶', multiplier: 0.05 },
+                    // 10 карток
+                ],
+                ai: [
+                    { id: 'card-chatgpt', name: 'ChatGPT Insights', effect: 'auto GPT', baseCost: 1000, unlockDays: 0, icon: '🤖', multiplier: 0.02 },
+                    { id: 'card-gemini', name: 'Gemini Synergy', effect: 'offline mining', baseCost: 1200, unlockDays: 1, icon: '♊', multiplier: 0.07 },
+                    { id: 'card-midjourney', name: 'Midjourney Art', effect: 'click power', baseCost: 1500, unlockDays: 2, icon: '🖼️', multiplier: 0.02 },
+                    { id: 'card-neuralink', name: 'Neuralink Connect', effect: 'XP gain', baseCost: 1800, unlockDays: 3, icon: '🧠', multiplier: 0.1 },
+                    { id: 'card-deepmind', name: 'DeepMind Core', effect: 'auto GPT', baseCost: 2000, unlockDays: 4, icon: '⚛️', multiplier: 0.02 },
+                    { id: 'card-openai-api', name: 'OpenAI API', effect: 'click power', baseCost: 1700, unlockDays: 5, icon: '☁️', multiplier: 0.02 },
+                    { id: 'card-alphago', name: 'AlphaGo Logic', effect: 'offline mining', baseCost: 1900, unlockDays: 6, icon: '♟️', multiplier: 0.07 },
+                    { id: 'card-gpt-vision', name: 'GPT Vision', effect: 'XP gain', baseCost: 2100, unlockDays: 7, icon: '👁️', multiplier: 0.1 },
+                    { id: 'card-huggingface', name: 'Hugging Face Hub', effect: 'auto GPT', baseCost: 2300, unlockDays: 8, icon: '🤗', multiplier: 0.02 },
+                    { id: 'card-nvidia-gpu', name: 'NVIDIA GPU Farm', effect: 'click power', baseCost: 2500, unlockDays: 9, icon: '⚡', multiplier: 0.02 },
+                    // 10 карток
+                ],
+                meme: [
+                    { id: 'card-dogecoin-meme', name: 'Doge Mania', effect: 'XP gain', baseCost: 300, unlockDays: 0, icon: '🐕', multiplier: 0.07 },
+                    { id: 'card-shiba', name: 'Shiba Inu Frenzy', effect: 'click power', baseCost: 350, unlockDays: 1, icon: '🐶', multiplier: 0.005 },
+                    { id: 'card-pepe', name: 'Pepe Coin', effect: 'auto GPT', baseCost: 400, unlockDays: 2, icon: '🐸', multiplier: 0.005 },
+                    { id: 'card-floki', name: 'Floki Viking', effect: 'offline mining', baseCost: 450, unlockDays: 3, icon: '🐺', multiplier: 0.02 },
+                    { id: 'card-bonk', name: 'Bonk Dog', effect: 'click power', baseCost: 500, unlockDays: 4, icon: '🦴', multiplier: 0.005 },
+                    { id: 'card-wif', name: 'Dogwifhat', effect: 'XP gain', baseCost: 550, unlockDays: 5, icon: '🎩', multiplier: 0.07 },
+                    { id: 'card-meme-ai', name: 'Meme AI Gen', effect: 'auto GPT', baseCost: 600, unlockDays: 6, icon: '😂', multiplier: 0.005 },
+                    { id: 'card-grumpy-cat', name: 'Grumpy Cat Coin', effect: 'offline mining', baseCost: 650, unlockDays: 7, icon: '😾', multiplier: 0.02 },
+                    { id: 'card-elon-tweet', name: 'Elon Tweet Power', effect: 'click power', baseCost: 700, unlockDays: 8, icon: '🐦', multiplier: 0.005 },
+                    { id: 'card-nfts', name: 'NFT Meme Collection', effect: 'XP gain', baseCost: 750, unlockDays: 9, icon: '🖼️', multiplier: 0.07 },
+                    // 10 карток
+                ],
+                social: [
+                    { id: 'card-telegram', name: 'Telegram Channel', effect: 'auto GPT', baseCost: 700, unlockDays: 0, icon: '✈️', multiplier: 0.015 },
+                    { id: 'card-influencer', name: 'Influencer Boost', effect: 'offline mining', baseCost: 800, unlockDays: 1, icon: '⭐', multiplier: 0.06 },
+                    { id: 'card-ton-community', name: 'TON Community', effect: 'XP gain', baseCost: 900, unlockDays: 2, icon: '👥', multiplier: 0.08 },
+                    { id: 'card-discord', name: 'Discord Server', effect: 'click power', baseCost: 750, unlockDays: 3, icon: '💬', multiplier: 0.015 },
+                    { id: 'card-youtube', name: 'YouTube Analytics', effect: 'auto GPT', baseCost: 850, unlockDays: 4, icon: '▶️', multiplier: 0.015 },
+                    { id: 'card-binance-exchange', name: 'Binance Exchange', effect: 'offline mining', baseCost: 950, unlockDays: 5, icon: '📈', multiplier: 0.06 },
+                    { id: 'card-bybit', name: 'Bybit Signals', effect: 'XP gain', baseCost: 1050, unlockDays: 6, icon: '📊', multiplier: 0.08 },
+                    { id: 'card-twitter-x', name: 'Twitter (X) Hype', effect: 'click power', baseCost: 1150, unlockDays: 7, icon: '✖️', multiplier: 0.015 },
+                    { id: 'card-reddit', name: 'Reddit Forum', effect: 'auto GPT', baseCost: 1250, unlockDays: 8, icon: '👽', multiplier: 0.015 },
+                    { id: 'card-okx', name: 'OKX Ventures', effect: 'offline mining', baseCost: 1350, unlockDays: 9, icon: '💹', multiplier: 0.06 },
+                    // 10 карток
+                ]
+            };
+
+            // Ініціалізація рівнів карток у gameData
+            for (const category in marketplaceCardData) {
+                marketplaceCardData[category].forEach(card => {
+                    if (!gameData.marketplaceCards[card.id]) {
+                        gameData.marketplaceCards[card.id] = { level: 0, lastUnlockedTime: gameData.gameStartTime };
+                    }
+                });
+            }
+
+            // Конфігурація щоденних квестів
+            const dailyQuestTemplates = [
+                { id: 'quest-1', name: 'Зробити 100 кліків', type: 'clicks', target: 100, rewardGPT: 50, rewardXP: 10, currentProgress: 0, completed: false },
+                { id: 'quest-2', name: 'Заробити 500 GPT кліками', type: 'gptFromClicks', target: 500, rewardGPT: 100, rewardXP: 20, currentProgress: 0, completed: false },
+                { id: 'quest-3', name: 'Покращити AutoGPT 1 раз', type: 'upgradeAutoGPT', target: 1, rewardGPT: 150, rewardXP: 30, currentProgress: 0, completed: false },
+                { id: 'quest-4', name: 'Придбати картку на біржі', type: 'buyMarketCard', target: 1, rewardGPT: 200, rewardXP: 40, currentProgress: 0, completed: false },
+                { id: 'quest-5', name: 'Прокачати АвтоБота 1 раз', type: 'upgradeOfflineBot', target: 1, rewardGPT: 250, rewardXP: 50, currentProgress: 0, completed: false },
+            ];
+
+            // Функція для оновлення інтерфейсу
+            function updateUI() {
+                gptCountElem.textContent = Math.floor(gameData.gpt);
+                autoGptRateElem.textContent = gameData.autoGptRate.toFixed(1); // До 1 знака після коми
+
+                // Оновлення XP та рівня
+                playerLevelElem.textContent = gameData.level;
+                const currentLevelXpNeeded = levelXpRequirements[gameData.level] || Infinity;
+                const progressPercent = (gameData.xp / currentLevelXpNeeded) * 100;
+                levelProgressBar.style.width = `${Math.min(progressPercent, 100)}%`;
+                levelProgressBar.textContent = `${Math.floor(gameData.xp)} / ${currentLevelXpNeeded} XP`;
+
+                // Оновлення енергії
+                energyBar.style.width = `${(gameData.energy.current / gameData.energy.max) * 100}%`;
+
+                // Оновити стан кнопок покращень AutoGPT (звичайної)
+                document.querySelectorAll('.upgrade-item .buy-upgrade-btn').forEach(button => {
+                    const upgradeItem = button.closest('.upgrade-item');
+                    const cost = parseInt(upgradeItem.dataset.upgradeCost);
+                    button.disabled = gameData.gpt < cost;
+                    button.textContent = `Покращити (${cost} GPT)`;
+                });
+
+                // Оновити стан кнопок магазину
+                document.querySelectorAll('.store-item .buy-item-btn').forEach(button => {
+                    const storeItem = button.closest('.store-item');
+                    const cost = parseInt(storeItem.dataset.itemCost);
+                    const itemType = storeItem.dataset.itemType;
+                    // Особлива логіка для "Миттєве відновлення енергії"
+                    if (itemType === 'dailyBonusReset' && gameData.energy.current === gameData.energy.max) {
+                        button.disabled = true;
+                        button.textContent = `Енергія повна`;
+                    } else {
+                        button.disabled = gameData.gpt < cost;
+                        button.textContent = `Купити (${cost} GPT)`;
+                    }
+                });
+
+                // Оновлення інформації про АвтоБота
+                offlineMiningRateElem.textContent = gameData.offlineBot.miningRatePerHour.toFixed(1);
+                offlineBotLevelElem.textContent = gameData.offlineBot.level;
+                offlineBotCostElem.textContent = gameData.offlineBot.cost;
+
+                // Перевірка вартості для АвтоБота
+                const isTONLevel = gameData.offlineBot.level >= 6;
+                if (isTONLevel) {
+                    upgradeOfflineBotBtn.textContent = `Покращити (${gameData.offlineBot.tonCost} TON)`;
+                    upgradeOfflineBotBtn.classList.add('buy-ton');
+                    upgradeOfflineBotBtn.disabled = false; // Кнопка завжди активна для TON, оскільки це реальна оплата
+                } else {
+                    upgradeOfflineBotBtn.textContent = `Покращити (${gameData.offlineBot.cost} GPT)`;
+                    upgradeOfflineBotBtn.classList.remove('buy-ton');
+                    upgradeOfflineBotBtn.disabled = gameData.gpt < gameData.offlineBot.cost;
+                }
+
+                // Оновлення лідерборду (заглушка)
+                myRankGPTElem.textContent = `#1`; // Поки що завжди #1
+                myGPTElem.textContent = Math.floor(gameData.gpt);
+
+
+                // Рендеринг карток, якщо активна вкладка "Біржа"
+                if (document.getElementById('exchange').style.display === 'block') {
+                    renderMarketplaceCards(document.querySelector('.marketplace-tabs button.active').dataset.marketTab);
+                }
+                // Рендеринг квестів, якщо активна вкладка "Квести"
+                if (document.getElementById('quests').style.display === 'block') {
+                    renderDailyQuests();
+                }
+            }
+
+            // Додавання повідомлень
+            function addNotification(message, type = "info") {
+                const timestamp = new Date().toLocaleString('uk-UA', { dateStyle: 'short', timeStyle: 'short' });
+                const notificationHTML = `<li><small>${timestamp}</small> ${message}</li>`;
+                notificationList.insertAdjacentHTML('afterbegin', notificationHTML); // Додаємо на початок
+                gameData.notifications.unshift({ timestamp: timestamp, message: message, type: type });
+                if (gameData.notifications.length > 20) { // Обмежити кількість повідомлень
+                    gameData.notifications.pop();
+                    notificationList.lastElementChild.remove();
+                }
+                saveGameData();
+            }
+
+            // Збільшення GPT за клік
+            function clickTonCoin(event) {
+                if (gameData.energy.current <= 0) {
+                    addNotification("Недостатньо енергії! Зачекайте або придбайте буст.", "error");
+                    return;
+                }
+
+                if (clickSound) {
+                    clickSound.currentTime = 0; // Rewind to the start for quick successive plays
+                    clickSound.play().catch(e => console.log("Click sound play failed:", e));
+                }
+
+                gameData.energy.current--; // Витрачаємо енергію
+
+                let earnedGPT = gameData.clickPower;
+                let earnedXP = 1; // Кожен клік дає 1 XP
+
+                // Застосувати бустер XP, якщо активний
+                if (gameData.items.xpBooster > 0) { // Перевірка на активність XP бустера
+                    earnedXP *= 2;
+                }
+
+                gameData.gpt += earnedGPT;
+                gameData.xp += earnedXP;
+
+                // Оновлення прогресу квестів
+                updateQuestProgress('clicks', 1);
+                updateQuestProgress('gptFromClicks', earnedGPT);
+
+                // Анімація числа
+                const clickAnim = document.createElement('div');
+                clickAnim.textContent = `+${earnedGPT}`;
+                clickAnim.classList.add('click-animation');
+                document.body.appendChild(clickAnim);
+
+                const rect = tonCoin.getBoundingClientRect();
+                clickAnim.style.left = `${event.clientX}px`;
+                clickAnim.style.top = `${event.clientY - 30}px`; // Зміщено трохи вгору
+
+                setTimeout(() => {
+                    clickAnim.remove();
+                }, 800);
+
+                checkLevelUp();
+                updateUI();
+                saveGameData();
+            }
+
+            // Перевірка рівня
+            function checkLevelUp() {
+                const currentLevelXpNeeded = levelXpRequirements[gameData.level];
+                if (gameData.xp >= currentLevelXpNeeded && currentLevelXpNeeded !== undefined) {
+                    gameData.level++;
+                    gameData.xp -= currentLevelXpNeeded; // Залишок XP переноситься
+                    addNotification(`Вітаємо! Ви досягли рівня ${gameData.level}!`);
+                    checkLevelUp(); // Рекурсивно перевіряємо, якщо вистачило XP на кілька рівнів
+                }
+            }
+
+            // Відновлення енергії
+            function recoverEnergy() {
+                if (gameData.energy.current < gameData.energy.max) {
+                    gameData.energy.current += gameData.energy.recoveryRate;
+                    if (gameData.energy.current > gameData.energy.max) {
+                        gameData.energy.current = gameData.energy.max;
+                    }
+                    updateUI();
+                }
+            }
+
+            // Пасивний дохід від AutoGPT (онлайн)
+            function autoGptTick() {
+                gameData.gpt += gameData.autoGptRate;
+                updateUI();
+                saveGameData(); // Зберігаємо частіше для пасивного доходу
+            }
+
+            // Покращення АвтоБота (офлайн)
+            function upgradeOfflineBot() {
+                let cost = gameData.offlineBot.cost;
+                let isTONLevel = gameData.offlineBot.level >= 6;
+
+                if (isTONLevel) {
+                    // Це "купівля" за TON. В реальній грі тут була б інтеграція з платіжним шлюзом.
+                    // Для симуляції просто робимо вигляд, що оплата пройшла.
+                    if (confirm(`Для покращення АвтоБота до рівня ${gameData.offlineBot.level + 1} потрібно ${gameData.offlineBot.tonCost} TON. Ви впевнені? (Це симуляція оплати TON)`)) {
+                        gameData.offlineBot.level++;
+                        gameData.offlineBot.miningRatePerHour += 5000; // Збільшення на 5000 GPT/год за TON-рівень
+                        gameData.offlineBot.tonCost = parseFloat((gameData.offlineBot.tonCost * 1.5).toFixed(2)); // Збільшуємо TON вартість, округляємо
+                        addNotification(`АвтоБота покращено до рівня ${gameData.offlineBot.level} за TON!`);
+                        updateQuestProgress('upgradeOfflineBot', 1); // Оновлення квесту
+                        if (buySound) { // <-- Додайте тут
+                            buySound.currentTime = 0;
+                            buySound.play().catch(e => console.log("Buy sound play failed:", e));
+                        }
+                    } else {
+                        addNotification("Покращення скасовано.", "info");
+                        return;
+                    }
+                } else {
+                    if (gameData.gpt >= cost) {
+                        gameData.gpt -= cost;
+                        gameData.offlineBot.level++;
+                        gameData.offlineBot.miningRatePerHour += 500; // Збільшення на 500 GPT/год за GPT-рівень
+                        gameData.offlineBot.cost = Math.ceil(gameData.offlineBot.cost * 1.2); // Збільшуємо GPT вартість
+                        addNotification(`АвтоБота покращено до рівня ${gameData.offlineBot.level} за GPT!`);
+                        updateQuestProgress('upgradeOfflineBot', 1); // Оновлення квесту
+                        if (buySound) { // <-- Додайте тут
+                            buySound.currentTime = 0;
+                            buySound.play().catch(e => console.log("Buy sound play failed:", e));
+                        }
+                    } else {
+                        addNotification("Недостатньо GPT для покращення АвтоБота!", "error");
+                        return;
+                    }
+                }
+                updateUI();
+                saveGameData();
+            }
+
+            // Купівля покращень AutoGPT (звичайної)
+            function buyUpgrade(event) {
+                const button = event.target;
+                const upgradeItem = button.closest('.upgrade-item');
+                if (!upgradeItem) return;
+
+                const cost = parseInt(upgradeItem.dataset.upgradeCost);
+                const rateIncrease = parseInt(upgradeItem.dataset.upgradeRate);
+                const upgradeType = upgradeItem.dataset.upgradeType;
+
+                if (gameData.gpt >= cost) {
+                    gameData.gpt -= cost;
+                    // Оновлюємо базовий AutoGPT rate, потім застосовуємо множники карток
+                    gameData.upgrades[upgradeType]++;
+                    applyCardEffects(); // Перераховуємо всі ефекти
+                    addNotification(`Ви покращили "${upgradeItem.querySelector('h3').textContent}"! AutoGPT збільшено.`);
+                    updateQuestProgress('upgradeAutoGPT', 1); // Оновлення квесту
+                    if (buySound) { // <-- Додайте тут
+                        buySound.currentTime = 0;
+                        buySound.play().catch(e => console.log("Buy sound play failed:", e));
+                    }
+                    updateUI();
+                    saveGameData();
+                } else {
+                    addNotification("Недостатньо GPT для покупки!", "error");
+                }
+            }
+
+            // Купівля предметів з магазину
+            function buyItem(event) {
+                const button = event.target;
+                const storeItem = button.closest('.store-item');
+                if (!storeItem) return;
+
+                const cost = parseInt(storeItem.dataset.itemCost);
+                const itemType = storeItem.dataset.itemType;
+
+                if (gameData.gpt >= cost) {
+                    gameData.gpt -= cost;
+                    gameData.items[itemType]++; // Збільшуємо кількість придбаного предмета
+
+                    switch (itemType) {
+                        case 'clickBooster':
+                            // gameData.clickPower вже оновлюється через applyCardEffects()
+                            addNotification("Ви купили Прискорювач кліків! Тепер кожен клік приносить більше GPT.");
+                            break;
+                        case 'energyBoost':
+                            gameData.energy.max = Math.round(gameData.energy.max * 1.2); // Збільшуємо макс. енергію на 20%
+                            gameData.energy.current = gameData.energy.max; // Заповнюємо до максимуму
+                            addNotification("Ви купили Енергетичний буст! Максимальна енергія збільшена.");
+                            break;
+                        case 'dailyBonusReset':
+                            gameData.energy.current = gameData.energy.max; // Миттєво відновлює енергію
+                            addNotification("Енергія повністю відновлена!");
+                            break;
+                        case 'xpBooster':
+                            // Активація XP бустера
+                            gameData.xpMultiplier = 2; // Встановлюємо множник
+                            addNotification("Ви активували XP Бустер! Досвід подвоюється на 5 хвилин.");
+                            setTimeout(() => {
+                                gameData.xpMultiplier = 1; // Вимикаємо бустер через 5 хвилин
+                                addNotification("Дія XP Бустера закінчилася.", "info");
+                                updateUI();
+                                saveGameData();
+                            }, 5 * 60 * 1000); // 5 хвилин
+                            break;
+                    }
+                    if (buySound) { // <-- Додайте тут
+                        buySound.currentTime = 0;
+                        buySound.play().catch(e => console.log("Buy sound play failed:", e));
+                    }
+                    applyCardEffects(); // Застосувати оновлені ефекти (особливо для clickBooster)
+                    updateUI();
+                    saveGameData();
+                } else {
+                    addNotification("Недостатньо GPT для покупки!", "error");
+                }
+            }
+
+            // === Міні-біржа (Маркетплейс) Функції ===
+
+            // Функція для розрахунку вартості та ефекту картки на певному рівні
+            function getCardStats(cardId, level) {
+                const card = Object.values(marketplaceCardData).flat().find(c => c.id === cardId);
+                if (!card) return null;
+
+                let cost;
+                let effectValue; // Величина ефекту
+                let costType; // "gpt" або "ton"
+
+                if (level <= 5) {
+                    cost = card.baseCost * Math.pow(1.5, level - 1); // Збільшення вартості за GPT
+                    costType = 'gpt';
+                    effectValue = card.multiplier * level; // Множник * рівень
+                } else {
+                    cost = 0.05 * Math.pow(2, level - 6); // Початкова вартість TON, збільшується експоненційно
+                    cost = parseFloat(cost.toFixed(2)); // Округляємо до 2 знаків після коми
+                    costType = 'ton';
+                    effectValue = card.multiplier * (level - 5) * 5; // Значно більший ефект за TON-рівні
+                }
+                // Форматуємо ефект для відображення
+                let formattedEffect;
+                if (card.effect.includes('XP')) {
+                    formattedEffect = `+${(effectValue * 100).toFixed(1)}% до XP`;
+                } else if (card.effect.includes('offline')) {
+                    formattedEffect = `+${Math.floor(effectValue * 10000)} GPT/год`; // Переводимо у GPT/год
+                }
+                else {
+                    formattedEffect = `+${(effectValue * 100).toFixed(1)}% до ${card.effect}`;
+                }
+
+
+                return { cost: Math.floor(cost), effectValue, costType, effectText: formattedEffect };
+            }
+
+            // Оновлення ефектів від карток та базових покращень
+            function applyCardEffects() {
+                // Скидаємо базові значення
+                let baseClickPower = 1;
+                let baseAutoGptRate = 0;
+                let baseOfflineMiningRate = 0;
+                let baseXPMultiplier = 1;
+
+                // Додаємо ефекти від звичайних AutoGPT покращень
+                baseAutoGptRate += gameData.upgrades.baseAutoGpt * 1;
+                baseAutoGptRate += gameData.upgrades.superMiner * 5;
+                baseAutoGptRate += gameData.upgrades.quantumProcessor * 20;
+
+                // Додаємо ефекти від предметів магазину
+                baseClickPower += gameData.items.clickBooster; // Кожен прискорювач додає +1 до кліку
+
+                // Застосовуємо XP бустер
+                baseXPMultiplier = gameData.items.xpBooster > 0 ? 2 : 1;
+
+
+                // Застосовуємо множники від карток міні-біржі
+                let totalClickMultiplier = 1;
+                let totalAutoGPTMultiplier = 1;
+                let totalXPMultiplier = baseXPMultiplier;
+                let totalOfflineMiningMultiplier = 1;
+                let totalOfflineMiningAdditive = 0; // Додатковий дохід для офлайн бота
+
+                for (const cardId in gameData.marketplaceCards) {
+                    const currentLevel = gameData.marketplaceCards[cardId].level;
+                    if (currentLevel > 0) {
+                        const card = Object.values(marketplaceCardData).flat().find(c => c.id === cardId);
+                        if (card) {
+                            const { effectValue } = getCardStats(card.id, currentLevel); // Отримуємо вже розраховане effectValue
+                            const effectType = card.effect; // click power, auto GPT, XP gain, offline mining
+
+                            switch (effectType) {
+                                case 'click power':
+                                    totalClickMultiplier += effectValue;
+                                    break;
+                                case 'auto GPT':
+                                    totalAutoGPTMultiplier += effectValue;
+                                    break;
+                                case 'XP gain':
+                                    totalXPMultiplier += effectValue; // Додаємо до множника XP
+                                    break;
+                                case 'offline mining':
+                                    totalOfflineMiningMultiplier += effectValue;
+                                    totalOfflineMiningAdditive += effectValue; // Також може бути як додавання GPT/год
+                                    break;
+                            }
+                        }
+                    }
+                }
+
+                // Застосовуємо множники до базових значень
+                gameData.clickPower = Math.max(1, Math.floor(baseClickPower * totalClickMultiplier));
+                gameData.autoGptRate = baseAutoGptRate * totalAutoGPTMultiplier;
+                gameData.xpMultiplier = totalXPMultiplier; // Встановлюємо загальний множник XP
+                gameData.offlineBot.miningRatePerHour = (baseOfflineMiningRate + gameData.offlineBot.level * 500) * totalOfflineMiningMultiplier;
+                // Також додаємо ефекти від карток безпосередньо до offlineBot.miningRatePerHour, якщо вони там накопичуються
+                // Це може бути складно, якщо ефекти карток взаємодіють з базовим рівнем офлайн бота.
+                // Для простоти, нехай baseOfflineMiningRate буде сумою від карток + від рівня бота
+                // TODO: Переглянути, як саме накопичуються ефекти. Можливо, краще мати окремі змінні для бонусів від карток.
+            }
+
+
+            // Відображення карток міні-біржі
+            function renderMarketplaceCards(category) {
+                marketplaceCardsContainer.innerHTML = ''; // Очистити попередні картки
+
+                const cardsToShow = marketplaceCardData[category];
+                const now = Date.now();
+
+                cardsToShow.forEach(card => {
+                    const currentCardData = gameData.marketplaceCards[card.id];
+                    const currentLevel = currentCardData ? currentCardData.level : 0;
+                    const nextLevel = currentLevel + 1;
+
+                    // Логіка розблокування карток за часом
+                    const unlockTimeMs = card.unlockDays * 24 * 60 * 60 * 1000;
+                    const isLocked = (now - gameData.gameStartTime) < unlockTimeMs;
+
+                    const cardElement = document.createElement('div');
+                    cardElement.classList.add('card-item');
+                    if (isLocked) {
+                        cardElement.classList.add('locked');
+                    }
+
+                    const { cost, effectValue, costType, effectText } = getCardStats(card.id, nextLevel) || { cost: 0, effectValue: 0, costType: 'gpt', effectText: '' }; // Fallback для effectText
+
+                    let buttonText;
+                    let isDisabled = isLocked || (costType === 'gpt' && gameData.gpt < cost) || (currentLevel >= 10);
+                    let buttonClass = '';
+
+                    if (currentLevel >= 10) {
+                        buttonText = "Макс. рівень";
+                        isDisabled = true;
+                    } else if (isLocked) {
+                        const remainingTime = unlockTimeMs - (now - gameData.gameStartTime);
+                        const days = Math.ceil(remainingTime / (24 * 60 * 60 * 1000));
+                        const hours = Math.ceil(remainingTime / (60 * 60 * 1000) % 24);
+                        buttonText = `Розбл. через ${days} дн. ${hours} год.`;
+                        isDisabled = true;
+                    } else if (costType === 'gpt') {
+                        buttonText = `Покращити (${cost} GPT)`;
+                    } else { // costType === 'ton'
+                        buttonText = `Покращити (${cost} TON)`;
+                        buttonClass = 'buy-ton'; // Додаємо клас для зеленої кнопки
+                    }
+
+
+                    cardElement.innerHTML = `
+                        <div class="card-icon">${card.icon}</div>
+                        <h3>${card.name}</h3>
+                        <p>${effectText}</p>
+                        <p class="card-level">Рівень: ${currentLevel}/10</p>
+                        <button data-card-id="${card.id}" data-cost-type="${costType}" ${isDisabled ? 'disabled' : ''} class="${buttonClass}">
+                            ${buttonText}
+                        </button>
+                    `;
+                    marketplaceCardsContainer.appendChild(cardElement);
+
+                    const buyButton = cardElement.querySelector('button');
+                    if (!isDisabled) {
+                        buyButton.addEventListener('click', () => buyMarketplaceCard(card.id, cost, costType));
+                    }
+                });
+            }
+
+            // Купівля/покращення картки міні-біржі
+            function buyMarketplaceCard(cardId, cost, costType) {
+                const currentCardData = gameData.marketplaceCards[cardId];
+                if (!currentCardData) {
+                    addNotification("Помилка: картку не знайдено.", "error");
+                    return;
+                }
+
+                const currentLevel = currentCardData.level;
+                if (currentLevel >= 10) {
+                    addNotification("Ця картка досягла максимального рівня.", "info");
+                    return;
+                }
+
+                const nextLevel = currentLevel + 1;
+                const { cost: actualCost, costType: actualCostType } = getCardStats(cardId, nextLevel);
+
+                if (actualCostType === 'gpt') {
+                    if (gameData.gpt >= actualCost) {
+                        gameData.gpt -= actualCost;
+                        currentCardData.level = nextLevel;
+                        addNotification(`Ви покращили "${Object.values(marketplaceCardData).flat().find(c => c.id === cardId).name}" до рівня ${nextLevel}!`);
+                        updateQuestProgress('buyMarketCard', 1); // Оновлення квесту
+                        if (buySound) { // <-- Додайте тут
+                            buySound.currentTime = 0;
+                            buySound.play().catch(e => console.log("Buy sound play failed:", e));
+                        }
+                        applyCardEffects(); // Перераховуємо ефекти після покращення
+                        updateUI();
+                        saveGameData();
+                    } else {
+                        addNotification(`Недостатньо GPT для покращення! Потрібно ${actualCost} GPT.`, "error");
+                    }
+                } else if (actualCostType === 'ton') {
+                    // Симуляція оплати TON. В реальному застосунку тут була б інтеграція з Tonkeeper/TON Connect
+                    if (confirm(`Для покращення цієї картки до рівня ${nextLevel} потрібно ${actualCost} TON. Ви впевнені? (Це симуляція оплати TON)`)) {
+                        currentCardData.level = nextLevel;
+                        addNotification(`Ви покращили "${Object.values(marketplaceCardData).flat().find(c => c.id === cardId).name}" до рівня ${nextLevel} за TON!`);
+                        updateQuestProgress('buyMarketCard', 1); // Оновлення квесту
+                        if (buySound) { // <-- Додайте тут
+                            buySound.currentTime = 0;
+                            buySound.play().catch(e => console.log("Buy sound play failed:", e));
+                        }
+                        applyCardEffects(); // Перераховуємо ефекти після покращення
+                        updateUI();
+                        saveGameData();
+                        // Тут можна викликати функцію для Tonkeeper з параметрами платежу
+                        // openTonkeeper(actualCost, "Покращення картки " + cardId);
+                    } else {
+                        addNotification("Покращення скасовано.", "info");
+                    }
+                }
+            }
+
+            // === Щоденні квести Функції ===
+
+            // Скидання та генерація щоденних квестів
+            function resetDailyQuests() {
+                const today = new Date().toDateString();
+                const lastReset = new Date(gameData.lastDailyQuestReset).toDateString();
+
+                if (today !== lastReset) {
+                    gameData.dailyQuests = []; // Очищуємо старі квести
+                    // Вибираємо 3 випадкові квести (можна ускладнити логіку)
+                    const shuffledQuests = [...dailyQuestTemplates].sort(() => 0.5 - Math.random());
+                    gameData.dailyQuests = shuffledQuests.slice(0, 3).map(q => ({ ...q, currentProgress: 0, completed: false }));
+                    gameData.lastDailyQuestReset = Date.now();
+                    addNotification("Нові щоденні квести доступні!");
+                    saveGameData();
+                }
+            }
+
+            // Оновлення прогресу квестів
+            function updateQuestProgress(type, amount) {
+                gameData.dailyQuests.forEach(quest => {
+                    if (quest.type === type && !quest.completed) {
+                        quest.currentProgress += amount;
+                        if (quest.currentProgress >= quest.target) {
+                            quest.currentProgress = quest.target; // Забезпечуємо, що не перевищує таргет
+                        }
+                    }
+                });
+                saveGameData();
+                updateUI(); // Щоб оновити візуальний стан квестів
+            }
+
+            // Завершення квесту
+            function completeQuest(questId) {
+                const quest = gameData.dailyQuests.find(q => q.id === questId);
+                if (quest && quest.currentProgress >= quest.target && !quest.completed) {
+                    gameData.gpt += quest.rewardGPT;
+                    gameData.xp += quest.rewardXP;
+                    quest.completed = true;
+                    addNotification(`Квест "${quest.name}" виконано! Отримано ${quest.rewardGPT} GPT та ${quest.rewardXP} XP.`);
+                    if (buySound) { // <-- Додайте тут звук завершення
+                        buySound.currentTime = 0;
+                        buySound.play().catch(e => console.log("Quest complete sound play failed:", e));
+                    }
+                    checkLevelUp();
+                    updateUI();
+                    saveGameData();
+                }
+            }
+
+            // Рендеринг щоденних квестів
+            function renderDailyQuests() {
+                dailyQuestsContainer.innerHTML = '';
+                if (gameData.dailyQuests.length === 0) {
+                    resetDailyQuests(); // Спробувати згенерувати, якщо порожньо (при першому вході)
+                }
+
+                gameData.dailyQuests.forEach(quest => {
+                    const questElement = document.createElement('div');
+                    questElement.classList.add('quest-item');
+
+                    const progressPercent = (quest.currentProgress / quest.target) * 100;
+                    const isCompleted = quest.completed;
+                    const canClaim = quest.currentProgress >= quest.target && !quest.completed;
+
+                    questElement.innerHTML = `
+                        <h3>${quest.name}</h3>
+                        <p>Прогрес: ${quest.currentProgress}/${quest.target}</p>
+                        <div class="quest-progress-bar"><div class="quest-progress-fill" style="width: ${progressPercent}%;"></div></div>
+                        <p>Нагорода: ${quest.rewardGPT} GPT, ${quest.rewardXP} XP</p>
+                        <button data-quest-id="${quest.id}" ${!canClaim ? 'disabled' : ''}>${isCompleted ? 'Виконано' : 'Забрати нагороду'}</button>
+                    `;
+                    dailyQuestsContainer.appendChild(questElement);
+
+                    const claimButton = questElement.querySelector('button');
+                    if (canClaim) {
+                        claimButton.addEventListener('click', () => completeQuest(quest.id));
+                    }
+                });
+            }
+
+
+            // Збереження даних гри
+            function saveGameData() {
+                try {
+                    gameData.lastActiveTime = Date.now();
+                    localStorage.setItem('clickGptGameData', JSON.stringify(gameData));
+                    // console.log("Гра збережена:", gameData);
+                } catch (e) {
+                    console.error("Помилка збереження даних:", e);
+                    alert("Помилка збереження гри. Будь ласка, перевірте налаштування браузера.");
+                }
+            }
+
+            // Завантаження даних гри
+            function loadGameData() {
+                try {
+                    const savedData = localStorage.getItem('clickGptGameData');
+                    if (savedData) {
+                        const loadedGameData = JSON.parse(savedData);
+
+                        // Оновлюємо gameData, зберігаючи нові поля, якщо їх немає в збережених даних
+                        gameData = { ...gameData, ...loadedGameData };
+
+                        // Переконуємось, що всі нові поля ініціалізовані, якщо їх немає в збережених даних
+                        if (typeof gameData.energy === 'undefined') {
+                            gameData.energy = { current: 100, max: 100, recoveryRate: 1 };
+                        }
+                        if (typeof gameData.offlineBot.tonCost === 'undefined') {
+                            gameData.offlineBot.tonCost = 1;
+                        }
+                        if (typeof gameData.offlineBot.miningRatePerHour === 'undefined') {
+                            gameData.offlineBot.miningRatePerHour = 0;
+                        }
+                        if (typeof gameData.gameStartTime === 'undefined') {
+                            gameData.gameStartTime = Date.now();
+                        }
+                        if (typeof gameData.items.clickBooster === 'undefined') {
+                            gameData.items.clickBooster = 0;
+                        }
+                        if (typeof gameData.items.energyBoost === 'undefined') {
+                            gameData.items.energyBoost = 0;
+                        }
+                        if (typeof gameData.items.dailyBonusReset === 'undefined') {
+                            gameData.items.dailyBonusReset = 0;
+                        }
+                        if (typeof gameData.items.xpBooster === 'undefined') {
+                            gameData.items.xpBooster = 0;
+                        }
+                        if (typeof gameData.xpMultiplier === 'undefined') {
+                            gameData.xpMultiplier = 1; // Додаємо множник XP
+                        }
+                        if (typeof gameData.dailyQuests === 'undefined' || !Array.isArray(gameData.dailyQuests)) {
+                            gameData.dailyQuests = [];
+                        }
+                        if (typeof gameData.lastDailyQuestReset === 'undefined') {
+                            gameData.lastDailyQuestReset = 0; // Для першого скидання квестів
+                        }
+
+
+                        // Переконуємось, що всі картки міні-біржі ініціалізовані
+                        for (const category in marketplaceCardData) {
+                            marketplaceCardData[category].forEach(card => {
+                                if (!gameData.marketplaceCards[card.id]) {
+                                    gameData.marketplaceCards[card.id] = { level: 0, lastUnlockedTime: gameData.gameStartTime };
+                                }
+                            });
+                        }
+
+                        // Розрахунок офлайн-доходу
+                        const now = Date.now();
+                        const offlineTimeHours = (now - gameData.lastActiveTime) / (1000 * 60 * 60); // Час в годинах
+                        if (offlineTimeHours >= 1 && gameData.offlineBot.miningRatePerHour > 0) {
+                            const offlineGptEarned = Math.floor(offlineTimeHours * gameData.offlineBot.miningRatePerHour);
+                            gameData.gpt += offlineGptEarned;
+                            addNotification(`Ви заробили ${offlineGptEarned} GPT, поки були офлайн!`);
+                        }
+
+                        applyCardEffects(); // Застосувати ефекти від завантажених карток
+                        updateUI();
+                        // console.log("Гра завантажена:", gameData);
+
+                        // Завантажити повідомлення в UI
+                        notificationList.innerHTML = ''; // Очистити існуючі
+                        gameData.notifications.forEach(notif => {
+                            const notificationHTML = `<li><small>${notif.timestamp}</small> ${notif.message}</li>`;
+                            notificationList.insertAdjacentHTML('beforeend', notificationHTML);
+                        });
+
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("Помилка завантаження даних:", e);
+                    alert("Помилка завантаження гри. Починаємо нову гру.");
+                    resetGameData(); // Якщо дані пошкоджені, починаємо нову гру
+                }
+                return false;
+            }
+
+            // Скидання даних гри
+            window.resetGameData = function() { // Зроблено глобальною для onclick
+                if (confirm("Ви впевнені, що хочете скинути весь прогрес? Цю дію не можна буде скасувати!")) {
+                    localStorage.removeItem('clickGptGameData');
+                    gameData = {
+                        gpt: 0,
+                        clickPower: 1,
+                        autoGptRate: 0,
+                        energy: {
+                            current: 100,
+                            max: 100,
+                            recoveryRate: 1
+                        },
+                        offlineBot: {
+                            level: 1,
+                            miningRatePerHour: 0,
+                            cost: 100,
+                            tonCost: 1
+                        },
+                        level: 1,
+                        xp: 0,
+                        upgrades: {
+                            baseAutoGpt: 0,
+                            superMiner: 0,
+                            quantumProcessor: 0,
+                        },
+                        items: {
+                            clickBooster: 0,
+                            energyBoost: 0,
+                            dailyBonusReset: 0,
+                            xpBooster: 0,
+                        },
+                        marketplaceCards: {},
+                        notifications: [],
+                        lastActiveTime: Date.now(),
+                        gameStartTime: Date.now(),
+                        dailyQuests: [],
+                        lastDailyQuestReset: 0,
+                        xpMultiplier: 1
+                    };
+                    // Переініціалізуємо картки для нового старту
+                    for (const category in marketplaceCardData) {
+                        marketplaceCardData[category].forEach(card => {
+                            gameData.marketplaceCards[card.id] = { level: 0, lastUnlockedTime: gameData.gameStartTime };
+                        });
+                    }
+
+                    addNotification("Гра скинута. Початок нової пригоди!");
+                    applyCardEffects(); // Перерахувати ефекти після скидання
+                    updateUI();
+                    saveGameData();
+                    showTab('click'); // Повернути на головний екран
+                    resetDailyQuests(); // Скинути квести при новому старті
+                }
+            };
+
+            // Перемикання вкладок
+            window.showTab = function(tabId) { // Зроблено глобальною для onclick
+                sections.forEach(section => {
+                    section.style.display = 'none';
+                });
+                document.getElementById(tabId).style.display = 'block';
+
+                navItems.forEach(item => item.classList.remove('active'));
+                const activeNavItem = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+                if (activeNavItem) {
+                    activeNavItem.classList.add('active');
+                }
+
+                // Особливий випадок для "Більше" - якщо це не "Більше" сам по собі, активувати відповідну вкладку.
+                if (tabId !== 'more') {
+                    const moreTabItem = document.querySelector(`.nav-item[data-tab="more"]`);
+                    if (moreTabItem) {
+                        moreTabItem.classList.remove('active');
+                    }
+                }
+                // Якщо переходимо на вкладку "Біржа", оновлюємо картки
+                if (tabId === 'exchange') {
+                    renderMarketplaceCards(document.querySelector('.marketplace-tabs button.active').dataset.marketTab);
+                } else if (tabId === 'quests') {
+                    renderDailyQuests(); // Оновлюємо квести при переході на вкладку
+                }
+                saveGameData();
+            };
+
+            // Функції для кнопок "Налаштування" та "Повідомлення" у верхньому барі
+            window.showSettings = function() {
+                showTab('settings');
+                document.querySelector(`.nav-item[data-tab="more"]`).classList.add('active'); // Підсвічуємо "Більше"
+            };
+
+            window.showNotifications = function() {
+                showTab('notifications');
+                document.querySelector(`.nav-item[data-tab="more"]`).classList.add('active'); // Підсвічуємо "Більше"
+            };
+
+            // Функції для TON
+            window.copyTonAddress = function() {
+                const tonAddress = document.getElementById('tonAddress').textContent;
+                navigator.clipboard.writeText(tonAddress).then(() => {
+                    alert('Адресу TON скопійовано!');
+                }).catch(err => {
+                    console.error('Не вдалося скопіювати текст: ', err);
+                });
+            };
+
+            window.openTonkeeper = function(amount = 0.1, comment = `ClickGPT_User_${new Date().getTime()}`) {
+                const tonAddress = document.getElementById('tonAddress').textContent;
+                const tonkeeperUrl = `ton://transfer/${tonAddress}?amount=${amount * 1e9}&text=${encodeURIComponent(comment)}`;
+                window.open(tonkeeperUrl, '_blank');
+                addNotification("Відкрито Tonkeeper для оплати. Не забудьте вказати ID в коментарі!");
+            };
+
+
+            // Ініціалізація гри
+            function initGame() {
+                if (loadGameData()) {
+                    console.log("Гра завантажена.");
+                } else {
+                    addNotification("Ласкаво просимо до ClickGPT 5.0! Почніть майнінг GPT!");
+                }
+                resetDailyQuests(); // Перевіряємо та генеруємо квести при старті
+                updateUI();
+                setInterval(autoGptTick, 1000); // Оновлення AutoGPT кожну секунду
+                setInterval(recoverEnergy, 10000); // Відновлення енергії кожні 10 секунд
+                // Кожні 5 хвилин перевіряємо, чи не час розблокувати нові картки та оновити UI
+                setInterval(updateUI, 5 * 60 * 1000);
+            }
+
+            // Слухачі подій
+            tonCoin.addEventListener('click', clickTonCoin);
+
+            upgradeList.addEventListener('click', (event) => {
+                if (event.target.classList.contains('buy-upgrade-btn')) {
+                    buyUpgrade(event);
+                }
+            });
+
+            storeGrid.addEventListener('click', (event) => {
+                if (event.target.classList.contains('buy-item-btn')) {
+                    buyItem(event);
+                }
+            });
+
+            upgradeOfflineBotBtn.addEventListener('click', upgradeOfflineBot);
+
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const tab = item.dataset.tab;
+                    showTab(tab);
+                });
+            });
+
+            // Слухачі для вкладок міні-біржі
+            marketplaceTabs.addEventListener('click', (event) => {
+                if (event.target.classList.contains('tab-button')) {
+                    document.querySelectorAll('.marketplace-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+                    renderMarketplaceCards(event.target.dataset.marketTab);
+                }
+            });
+
+
+            // Початковий екран
+            startGameBtn.addEventListener('click', () => {
+                startScreen.style.display = 'none';
+                gameContainer.style.display = 'flex';
+                initGame();
+                showTab('click'); // Показати головний екран після запуску
+            });
+
+            // Перевірка, чи це Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                // Приклад отримання user ID з Telegram
+                // const userId = Telegram.WebApp.initDataUnsafe.user.id;
+                // console.log("Telegram User ID:", userId);
+
+                // Приклад інтеграції з Telegram
+                // Telegram.WebApp.setHeaderColor('#00f6ff');
+                // Telegram.WebApp.setBackgroundColor('#1a2542');
+                // Telegram.WebApp.setMainButton({ text: 'Запросити друзів', isVisible: true });
+                // Telegram.WebApp.onEvent('mainButtonClicked', function() {
+                //     Telegram.WebApp.showPopup({
+                //         title: 'Запрошення',
+                //         message: 'Скоро тут буде функціонал запрошення друзів!',
+                //         buttons: [{ id: 'ok', text: 'ОК' }]
+                //     });
+                // });
+            }
+        });
+    </script>
+</body>
+</html>
